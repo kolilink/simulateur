@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur Financier - KOLILINK</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Police Inter & Poppins -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Masquer le contenu principal par défaut (sera affiché après login) */
+        #main-app {
+            display: none;
+        }
+
+        h1,
+        h2,
+        h3,
+        .font-heading {
+            font-family: 'Poppins', sans-serif;
+        }
+
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        .section-card {
+            background: white;
+            border: 1px solid #f1f5f9;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .section-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 700;
+            margin-right: 0.75rem;
+        }
+
+        .input-enhanced {
+            transition: all 0.2s;
+            background-color: #f8fafc;
+        }
+
+        .input-enhanced:focus {
+            background-color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
+        /* --- STYLES D'IMPRESSION OPTIMISÉS (ONE PAGE STRICTE) --- */
+        @media print {
+            @page {
+                margin: 0.8cm;
+                size: A4 portrait;
+            }
+
+            body {
+                visibility: hidden;
+                font-size: 10pt;
+                background: white !important;
+                color: #0f172a !important;
+            }
+
+            /* S'assurer que l'app est visible à l'impression même si cachée en JS */
+            #main-app {
+                display: block !important;
+            }
+
+            #login-screen {
+                display: none !important;
+            }
+
+            .no-print,
+            .no-print * {
+                display: none !important;
+            }
+
+            .printable-area {
+                visibility: visible;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+            }
+
+            /* Header Compact */
+            #pdf-header {
+                display: flex !important;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 2px solid #0f172a !important;
+                padding-bottom: 10px !important;
+                margin-bottom: 20px !important;
+            }
+
+            #pdf-header h1 {
+                font-size: 1.8rem !important;
+                margin: 0 !important;
+                line-height: 1;
+            }
+
+            #pdf-header p {
+                font-size: 0.9rem !important;
+                color: #475569 !important;
+                margin: 0 !important;
+            }
+
+            #print-school-name {
+                font-size: 1.4rem !important;
+                margin: 0 !important;
+                font-weight: 800 !important;
+                text-align: right;
+            }
+
+            /* Grille compacte pour les résultats unitaires */
+            .grid-cols-1.md\:grid-cols-2 {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 1.5rem !important;
+                margin-bottom: 1.5rem !important;
+            }
+
+            /* Styles des boîtes de résultats */
+            #results-section .bg-white {
+                padding: 1rem !important;
+                border: 1px solid #94a3b8 !important;
+                border-radius: 6px !important;
+                box-shadow: none !important;
+            }
+
+            /* Section Prix Parents */
+            .price-parent-box {
+                background-color: #f1f5f9 !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+
+            .price-parent-value {
+                font-size: 1.4rem !important;
+                font-weight: 800 !important;
+                color: #0f172a !important;
+            }
+
+            /* Section Global */
+            .global-box {
+                border: none !important;
+                padding: 0 !important;
+            }
+
+            /* Bloc Bénéfice Central Compacté */
+            .bg-slate-900 {
+                background-color: white !important;
+                color: #0f172a !important;
+                border: 3px solid #0f172a !important;
+                padding: 1rem !important;
+                margin-top: 1rem !important;
+                border-radius: 8px !important;
+            }
+
+            #global-profit {
+                font-size: 2.5rem !important;
+                color: #0f172a !important;
+                margin: 5px 0 !important;
+            }
+
+            .bg-slate-900 .text-green-400 {
+                color: #0f172a !important;
+                font-weight: 900 !important;
+                text-decoration: underline;
+            }
+
+            /* Liste détaillée compacte sur 2 colonnes */
+            #print-details-container {
+                margin-top: 1.5rem !important;
+                padding-top: 1rem !important;
+                border-top: 1px solid #cbd5e1 !important;
+                display: block !important;
+            }
+
+            #print-details-container .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 1rem !important;
+            }
+
+            #print-details-container ul {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            #print-details-container ul li {
+                padding: 2px 0 !important;
+                border-bottom: 1px dotted #cbd5e1 !important;
+                font-size: 0.85rem !important;
+                line-height: 1.2 !important;
+            }
+
+            svg {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50">
+
+    <!-- ÉCRAN DE CONNEXION -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+            <div class="mb-6">
+                <div
+                    class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                        </path>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-800">Accès Restreint</h1>
+                <p class="text-slate-500 text-sm mt-2">Veuillez entrer le code d'accès partenaire KOLILINK.</p>
+            </div>
+
+            <form id="login-form" class="space-y-4">
+                <input type="password" id="access-code" placeholder="Code d'accès"
+                    class="w-full p-4 border border-slate-300 rounded-xl text-center text-xl font-bold tracking-widest focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all">
+                <button type="submit"
+                    class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition-colors shadow-lg">
+                    Entrer
+                </button>
+            </form>
+            <p id="login-error" class="text-red-500 text-sm mt-4 hidden font-medium">Code incorrect. Veuillez réessayer.
+            </p>
+        </div>
+    </div>
+
+    <!-- APPLICATION PRINCIPALE -->
+    <div id="main-app" class="max-w-5xl mx-auto main-container p-4 md:p-8">
+        <!-- Zone imprimable -->
+        <div class="bg-white shadow-xl rounded-2xl overflow-hidden printable-area border border-slate-100">
+
+            <!-- Header (Site Web) -->
+            <header class="bg-slate-900 text-white p-10 no-print text-center relative overflow-hidden">
+                <div
+                    class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10">
+                </div>
+                <div
+                    class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20">
+                </div>
+                <div
+                    class="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20">
+                </div>
+                <div class="relative z-10">
+                    <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-2">Simulateur de Bénéfices</h1>
+                    <div class="h-1 w-20 bg-blue-500 mx-auto rounded-full mb-3"></div>
+                    <p class="text-blue-200 font-medium text-sm uppercase tracking-widest">Partenariat KOLILINK</p>
+                </div>
+            </header>
+
+            <!-- Entête PDF (Impression) -->
+            <div id="pdf-header" class="p-10 pb-0 hidden">
+                <div class="flex-1">
+                    <h1 class="text-3xl font-bold text-slate-900 tracking-tight mb-1 uppercase">Proposition Financière
+                    </h1>
+                    <p class="text-sm font-bold text-slate-500 uppercase tracking-wide">Intégration Kits Scolaires</p>
+                </div>
+                <div class="text-right">
+                    <h2 id="print-school-name" class="text-xl font-bold text-slate-800"></h2>
+                    <p id="pdf-date" class="text-sm text-slate-500 mt-1"></p>
+                </div>
+            </div>
+
+            <main class="p-6 md:p-10 bg-slate-50/50">
+
+                <!-- 1. IDENTIFICATION -->
+                <section class="section-card no-print">
+                    <div class="flex items-center mb-6">
+                        <span class="step-badge">1</span>
+                        <h2 class="text-lg font-bold text-slate-800">Votre Établissement</h2>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 ml-1">Nom de
+                            l'école <span class="text-red-500">*</span></label>
+                        <input type="text" id="school-name" placeholder="Ex: Groupe Scolaire Avenir"
+                            class="input-enhanced w-full p-4 border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none text-slate-800 font-medium placeholder-slate-400">
+                        <p id="school-name-error"
+                            class="text-red-500 text-sm mt-2 hidden font-medium flex items-center gap-2 animate-pulse">
+                            Ce champ est requis
+                        </p>
+                    </div>
+                </section>
+
+                <!-- 2. EFFECTIFS -->
+                <section class="section-card no-print" id="students-section">
+                    <div class="flex items-center mb-6">
+                        <span class="step-badge">2</span>
+                        <h2 class="text-lg font-bold text-slate-800">Vos Effectifs <span
+                                class="text-xs font-normal text-slate-400 ml-2">(Nombre d'élèves)</span></h2>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="relative group">
+                            <label
+                                class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 ml-1">Primaire</label>
+                            <input type="number" min="0" id="students-primaire" placeholder="0"
+                                class="input-enhanced w-full p-4 border border-slate-200 rounded-xl text-center font-bold text-xl text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none">
+                        </div>
+                        <div class="relative group">
+                            <label
+                                class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 ml-1">Secondaire</label>
+                            <input type="number" min="0" id="students-secondaire" placeholder="0"
+                                class="input-enhanced w-full p-4 border border-slate-200 rounded-xl text-center font-bold text-xl text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none">
+                        </div>
+                    </div>
+                    <p id="students-error"
+                        class="text-red-500 text-sm mt-4 hidden font-medium bg-red-50 p-3 rounded-lg border border-red-100 flex items-center justify-center gap-2">
+                        Indiquez au moins un élève pour lancer le calcul.
+                    </p>
+                </section>
+
+                <!-- 3. PRIX -->
+                <section class="section-card no-print">
+                    <div class="flex items-center mb-6">
+                        <span class="step-badge">3</span>
+                        <h2 class="text-lg font-bold text-slate-800">Prix de vente <span
+                                class="text-xs font-normal text-slate-400 ml-2">(Unitaire)</span></h2>
+                    </div>
+                    <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-4 mb-6 flex items-start gap-3">
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Les <strong class="text-slate-500 bg-slate-200 px-1 rounded">coûts d'achat</strong> sont
+                            fixes. Modifiez les <strong class="text-blue-700 bg-blue-100 px-1 rounded">prix de
+                                revente</strong> pour ajuster votre marge.
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="product-price-list">
+                        <!-- JS -->
+                    </div>
+                </section>
+
+                <!-- 4. KIT -->
+                <section class="section-card no-print">
+                    <div class="flex items-center mb-6">
+                        <span class="step-badge">4</span>
+                        <h2 class="text-lg font-bold text-slate-800">Composition du Kit</h2>
+                    </div>
+
+                    <!-- Phrase explicative -->
+                    <div class="bg-indigo-50/50 border border-indigo-100 rounded-lg p-4 mb-6 flex items-start gap-3">
+                        <svg class="w-5 h-5 text-indigo-600 mt-0.5 shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Veuillez indiquer la <strong>quantité moyenne</strong> d'articles utilisés par <strong>un
+                                seul élève</strong> durant l'année scolaire.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8" id="quantity-layout-container">
+                        <!-- JS -->
+                    </div>
+                </section>
+
+                <!-- BOUTON -->
+                <section class="text-center no-print mb-16">
+                    <button id="calculate-btn"
+                        class="group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-slate-900 font-heading rounded-xl hover:bg-slate-800 hover:shadow-lg hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 w-full md:w-auto">
+                        <span class="relative flex items-center gap-3 text-lg">
+                            Calculer le Bilan Financier
+                        </span>
+                    </button>
+                    <div id="save-status-container" class="mt-4 min-h-[24px]">
+                        <span id="save-status" class="text-sm font-medium text-slate-500 animate-pulse"></span>
+                    </div>
+                </section>
+
+                <!-- RÉSULTATS -->
+                <div id="results-section"
+                    class="opacity-30 pointer-events-none transition-all duration-700 blur-sm transform translate-y-4">
+
+                    <!-- 1. PRIX PARENTS -->
+                    <div class="mb-8">
+                        <div class="flex items-center gap-2 mb-4 border-b border-slate-200 pb-2">
+                            <h3 class="text-lg font-bold text-slate-800 uppercase tracking-wide">1. Montant à ajouter
+                                aux frais de scolarité</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Primaire -->
+                            <div class="bg-white p-6 rounded-xl border border-blue-100 shadow-sm price-parent-box">
+                                <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Par élève du
+                                    Primaire</p>
+                                <p class="text-xs text-slate-400 mb-3">(Payé par les parents)</p>
+                                <p class="text-3xl font-extrabold text-slate-800 tracking-tight price-parent-value"
+                                    id="unit-revenue-primaire">0 GNF</p>
+                            </div>
+                            <!-- Secondaire -->
+                            <div class="bg-white p-6 rounded-xl border border-indigo-100 shadow-sm price-parent-box">
+                                <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Par élève du
+                                    Secondaire</p>
+                                <p class="text-xs text-slate-400 mb-3">(Payé par les parents)</p>
+                                <p class="text-3xl font-extrabold text-slate-800 tracking-tight price-parent-value"
+                                    id="unit-revenue-secondaire">0 GNF</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. SYNTHÈSE GLOBALE -->
+                    <div class="mb-8 global-box">
+                        <div class="flex items-center gap-2 mb-4 border-b border-slate-200 pb-2">
+                            <h3 class="text-lg font-bold text-slate-800 uppercase tracking-wide">2. Impact Financier
+                                Global</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <!-- Investissement -->
+                            <div class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                                <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Coût Total des
+                                    Kits</p>
+                                <p class="text-xs text-slate-400 mb-2">(Facturé par KOLILINK)</p>
+                                <p class="text-2xl font-bold text-slate-600 tracking-tight" id="global-cost">0 GNF</p>
+                            </div>
+                            <!-- CA -->
+                            <div class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                                <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Recettes
+                                    Totales</p>
+                                <p class="text-xs text-slate-400 mb-2">(Collectées via scolarité)</p>
+                                <p class="text-2xl font-bold text-slate-600 tracking-tight" id="global-revenue">0 GNF
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 3. BÉNÉFICE NET (EN BAS) -->
+                        <div
+                            class="bg-slate-900 rounded-2xl p-8 shadow-xl text-center relative overflow-hidden border border-slate-800">
+                            <div class="relative z-10">
+                                <span
+                                    class="text-green-400 text-xs font-bold uppercase tracking-widest px-4 border border-green-400/30 rounded-full py-1 mb-4 inline-block">Bénéfice
+                                    Net pour l'École</span>
+                                <p class="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none mb-2 break-words"
+                                    id="global-profit">0 GNF</p>
+                                <p class="text-slate-400 text-sm font-medium">(Gain net disponible)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Détails impression -->
+                    <div id="print-details-container" class="hidden mt-8 pt-4 border-t border-slate-200">
+                        <h3 class="font-bold text-slate-800 text-sm mb-4 uppercase">Détail du contenu des kits inclus
+                        </h3>
+                        <div class="grid grid-cols-2 gap-8 text-xs">
+                            <div id="print-details-primaire"></div>
+                            <div id="print-details-secondaire"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </main>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="flex justify-center gap-6 mt-10 no-print mb-20">
+            <button id="print-pdf-btn"
+                class="flex items-center gap-2 px-8 py-3 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 font-semibold shadow-sm transition-all duration-200 group">
+                <svg class="w-5 h-5 text-slate-400 group-hover:text-slate-600" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2z">
+                    </path>
+                </svg>
+                Imprimer / PDF
+            </button>
+            <button id="contact-btn"
+                class="hidden flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold shadow-md shadow-blue-200 transition-all duration-200 hover:-translate-y-1">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                    </path>
+                </svg>
+                Envoyer la proposition
+            </button>
+        </div>
+
+        <footer class="text-center pb-10 text-slate-300 text-xs no-print font-medium">
+            © 2025 KOLILINK &bull; Outil de Simulation Partenaire
+        </footer>
+    </div>
+
+    <script>
+        (function () {
+            // --- 1. SUPABASE ---
+            const SUPABASE_URL = "https://kgqjgoauhwqhtfavfhpk.supabase.co";
+            const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtncWpnb2F1aHdxaHRmYXZmaHBrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4ODgwMjgsImV4cCI6MjA3NzQ2NDAyOH0.D3KIZI9--Y-V7Ms0dygbqLXAZWANMLjtn_NFJAb6mBA";
+            let supabaseClient = null;
+            try { if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch (e) { }
+
+            // --- GESTION DU LOGIN ---
+            const loginScreen = document.getElementById('login-screen');
+            const mainApp = document.getElementById('main-app');
+            const loginForm = document.getElementById('login-form');
+            const accessCodeInput = document.getElementById('access-code');
+            const loginError = document.getElementById('login-error');
+            const CORRECT_CODE = "KOLI2025"; // Code d'accès par défaut
+
+            // Vérifier si déjà connecté
+            if (localStorage.getItem('kolilink_auth') === 'true') {
+                showApp();
+            }
+
+            function showApp() {
+                loginScreen.style.display = 'none';
+                mainApp.style.display = 'block';
+            }
+
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const code = accessCodeInput.value.trim();
+                if (code === CORRECT_CODE) {
+                    localStorage.setItem('kolilink_auth', 'true');
+                    showApp();
+                } else {
+                    loginError.classList.remove('hidden');
+                    accessCodeInput.value = '';
+                    accessCodeInput.classList.add('shake', 'border-red-500');
+                    setTimeout(() => accessCodeInput.classList.remove('shake', 'border-red-500'), 500);
+                }
+            });
+
+            // --- 2. DONNÉES ---
+            const productCatalog = {
+                'cahier-100p-pf': { name: 'Cahier 100p Petit', cost: 2500, resale: 3000 },
+                'cahier-200p-pf': { name: 'Cahier 200p Petit', cost: 4700, resale: 5000 },
+                'cahier-100p-gf': { name: 'Cahier 100p Grand', cost: 5500, resale: 6000 },
+                'cahier-200p-gf': { name: 'Cahier 200p Grand', cost: 7000, resale: 10000 },
+                'maillot': { name: 'Maillot de sport', cost: 45000, resale: 50000 },
+                'bic': { name: 'Stylos (Bic)', cost: 500, resale: 1000 },
+                'academi': { name: 'Académie (boîte)', cost: 5500, resale: 6000 }
+            };
+
+            const levelConfig = {
+                primaire: { name: 'Primaire', studentId: 'students-primaire', defaults: { 'maillot': 1, 'bic': 15, 'academi': 1 } },
+                secondaire: { name: 'Secondaire', studentId: 'students-secondaire', defaults: { 'maillot': 1, 'bic': 20, 'academi': 1 } }
+            };
+
+            // --- 3. UI ---
+            function formatGNF(val) { return new Intl.NumberFormat('fr-FR').format(val) + ' GNF'; }
+
+            function getVal(id) {
+                const el = document.getElementById(id);
+                if (!el) return 0;
+                const val = el.value.trim();
+                if (val === '') return 0;
+                const num = parseFloat(val);
+                return isNaN(num) ? 0 : num;
+            }
+
+            function setTxt(id, txt) { const el = document.getElementById(id); if (el) el.innerText = txt; }
+
+            function initUI() {
+                // Liste des prix
+                const priceContainer = document.getElementById('product-price-list');
+                priceContainer.innerHTML = '';
+                for (const [pid, p] of Object.entries(productCatalog)) {
+                    priceContainer.innerHTML += `
+                    <div class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+                        <p class="font-bold text-sm text-slate-800 mb-4 truncate border-b border-slate-50 pb-2" title="${p.name}">${p.name}</p>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                    Coût d'achat
+                                </label>
+                                <input type="text" value="${p.cost}" disabled class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-500 font-mono font-medium">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-blue-600 uppercase tracking-wider block mb-1.5">Prix Revente</label>
+                                <input type="number" id="resale-${pid}" value="${p.resale}" class="input-enhanced w-full border border-blue-100 rounded-lg p-2.5 text-sm font-bold text-blue-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                        </div>
+                    </div>`;
+                }
+
+                // Liste des quantités
+                const qtyContainer = document.getElementById('quantity-layout-container');
+                qtyContainer.innerHTML = '';
+                for (const [lid, level] of Object.entries(levelConfig)) {
+                    let html = `
+                <div class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                    <h3 class="font-bold text-slate-800 border-b border-slate-100 pb-4 mb-5 flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                            ${lid === 'primaire' ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>'}
+                        </div>
+                        Kit ${level.name}
+                    </h3>
+                    <div class="space-y-3">`;
+                    for (const [pid, p] of Object.entries(productCatalog)) {
+                        const def = level.defaults[pid] || 0;
+                        html += `
+                    <div class="flex justify-between items-center text-sm p-2 hover:bg-slate-50 rounded-lg transition-colors group">
+                        <label class="text-slate-600 font-medium truncate w-2/3 pr-2 cursor-pointer group-hover:text-slate-900 transition-colors" for="qty-${lid}-${pid}">${p.name}</label>
+                        <input type="number" id="qty-${lid}-${pid}" value="${def}" min="0" class="input-enhanced w-20 border border-slate-200 rounded-lg p-2 text-center font-bold text-slate-700 focus:border-slate-800 outline-none">
+                    </div>`;
+                    }
+                    html += `</div></div>`;
+                    qtyContainer.innerHTML += html;
+                }
+            }
+
+            // --- 4. CALCUL ---
+            function calculate() {
+                const nbPrim = getVal('students-primaire');
+                const nbSec = getVal('students-secondaire');
+
+                if (nbPrim === 0 && nbSec === 0) {
+                    return null;
+                }
+
+                let globalCost = 0;
+                let globalRevenue = 0;
+                let globalProfit = 0;
+
+                let resultData = { quantities: {} };
+
+                for (const [lid, level] of Object.entries(levelConfig)) {
+                    const nbEleves = getVal(level.studentId);
+
+                    let unitCost = 0;
+                    let unitRevenue = 0;
+                    let unitMargin = 0;
+                    let levelQtyDetails = {};
+
+                    for (const pid in productCatalog) {
+                        const cost = productCatalog[pid].cost;
+                        const resale = getVal(`resale-${pid}`);
+                        const qty = getVal(`qty-${lid}-${pid}`);
+
+                        if (qty > 0) {
+                            unitCost += cost * qty;
+                            unitRevenue += resale * qty;
+                            unitMargin += (resale - cost) * qty;
+                            levelQtyDetails[productCatalog[pid].name] = qty;
+                        }
+                    }
+
+                    // Affichage du montant par élève SI il y a des élèves
+                    const displayUnitRevenue = (nbEleves > 0) ? unitRevenue : 0;
+                    setTxt(`unit-revenue-${lid}`, formatGNF(displayUnitRevenue));
+
+                    globalCost += unitCost * nbEleves;
+                    globalRevenue += unitRevenue * nbEleves;
+                    globalProfit += unitMargin * nbEleves;
+
+                    resultData.quantities[lid] = levelQtyDetails;
+                    resultData[`montant_${lid}`] = Math.round(unitRevenue);
+                    resultData[`nb_${lid}`] = nbEleves;
+                }
+
+                setTxt('global-cost', formatGNF(globalCost));
+                setTxt('global-revenue', formatGNF(globalRevenue));
+                setTxt('global-profit', formatGNF(globalProfit));
+
+                const resSection = document.getElementById('results-section');
+                resSection.classList.remove('opacity-30', 'blur-sm', 'pointer-events-none', 'transform', 'translate-y-4');
+                resSection.classList.add('opacity-100', 'translate-y-0');
+                resSection.scrollIntoView({ behavior: 'smooth' });
+
+                resultData.nom_ecole = document.getElementById('school-name').value.trim();
+                resultData.total_profit = Math.round(globalProfit);
+                resultData.global_cost = Math.round(globalCost);
+                resultData.global_revenue = Math.round(globalRevenue);
+
+                return resultData;
+            }
+
+            // --- 5. ACTIONS ---
+            async function saveData(data) {
+                if (!supabaseClient) return;
+
+                const btn = document.getElementById('calculate-btn');
+                const status = document.getElementById('save-status');
+
+                btn.disabled = true;
+                btn.innerHTML = `<span class="inline-block animate-spin mr-2">⟳</span> Calcul en cours...`;
+                status.innerText = "Analyse des données...";
+
+                try {
+                    // Check doublon
+                    const { data: existing } = await supabaseClient
+                        .from('simulations')
+                        .select('id')
+                        .eq('nom_ecole', data.nom_ecole)
+                        .eq('benefice_total_annuel', data.total_profit)
+                        .limit(1);
+
+                    if (existing && existing.length > 0) {
+                        status.innerText = "Données à jour.";
+                    } else {
+                        await supabaseClient.from('simulations').insert([{
+                            nom_ecole: data.nom_ecole,
+                            nb_eleves_primaire: data.nb_primaire,
+                            nb_eleves_secondaire: data.nb_secondaire,
+                            montant_par_eleve_primaire: data.montant_primaire,
+                            montant_par_eleve_secondaire: data.montant_secondaire,
+                            benefice_total_annuel: data.total_profit,
+                            quantites_details: data.quantities,
+                            // --- NOUVEAUX CHAMPS ---
+                            investissement_total: data.global_cost,
+                            chiffre_affaires: data.global_revenue
+                        }]);
+                        status.innerText = "Calcul terminé.";
+                    }
+                } catch (e) {
+                    console.error(e);
+                    status.innerText = "";
+                } finally {
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = `<span class="relative flex items-center gap-3 text-lg">Recalculer <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg></span>`;
+                        document.getElementById('contact-btn').classList.remove('hidden');
+                        document.getElementById('contact-btn').classList.add('flex');
+                    }, 800);
+                }
+            }
+
+            // --- 6. EVENTS ---
+            document.addEventListener('DOMContentLoaded', () => {
+                initUI();
+
+                const btnCalc = document.getElementById('calculate-btn');
+                const schoolInput = document.getElementById('school-name');
+                const nameError = document.getElementById('school-name-error');
+                const studentError = document.getElementById('students-error');
+                const studentSection = document.getElementById('students-section');
+                const primInput = document.getElementById('students-primaire');
+                const secInput = document.getElementById('students-secondaire');
+
+                const newBtnCalc = btnCalc.cloneNode(true);
+                btnCalc.parentNode.replaceChild(newBtnCalc, btnCalc);
+
+                newBtnCalc.addEventListener('click', () => {
+                    let isValid = true;
+
+                    // 1. Validation Nom
+                    if (!schoolInput.value.trim()) {
+                        nameError.classList.remove('hidden');
+                        schoolInput.classList.add('border-red-500', 'shake', 'ring-2', 'ring-red-100');
+                        setTimeout(() => schoolInput.classList.remove('shake'), 500);
+                        schoolInput.focus();
+                        isValid = false;
+                    } else {
+                        nameError.classList.add('hidden');
+                        schoolInput.classList.remove('border-red-500', 'ring-2', 'ring-red-100');
+                    }
+
+                    // 2. Validation Élèves (STRICTE)
+                    const prim = getVal('students-primaire');
+                    const sec = getVal('students-secondaire');
+
+                    if (prim <= 0 && sec <= 0) {
+                        studentError.classList.remove('hidden');
+                        primInput.classList.add('border-red-300', 'bg-red-50');
+                        secInput.classList.add('border-red-300', 'bg-red-50');
+
+                        if (isValid) {
+                            studentSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        isValid = false;
+                    } else {
+                        studentError.classList.add('hidden');
+                        primInput.classList.remove('border-red-300', 'bg-red-50');
+                        secInput.classList.remove('border-red-300', 'bg-red-50');
+                    }
+
+                    if (!isValid) return;
+
+                    const res = calculate();
+                    if (res) saveData(res);
+                });
+
+                // Impression
+                const btnPrint = document.getElementById('print-pdf-btn');
+                const newBtnPrint = btnPrint.cloneNode(true);
+                btnPrint.parentNode.replaceChild(newBtnPrint, btnPrint);
+                newBtnPrint.addEventListener('click', () => {
+                    const res = calculate();
+                    if (!res) return;
+
+                    document.getElementById('print-school-name').innerText = res.nom_ecole;
+                    document.getElementById('pdf-date').innerText = new Date().toLocaleDateString('fr-FR', {
+                        day: 'numeric', month: 'long', year: 'numeric'
+                    });
+
+                    const fill = (lvl, id) => {
+                        const div = document.getElementById(id);
+                        const q = res.quantities[lvl];
+                        let h = `<h4 class="font-bold text-slate-800 border-b-2 border-slate-800 pb-2 mb-3 uppercase tracking-wide text-xs">${lvl}</h4><ul class="space-y-2">`;
+                        for (const [k, v] of Object.entries(q)) h += `<li class="flex justify-between text-sm text-slate-700 border-b border-slate-100 pb-1"><span>${k}</span><span class="font-bold">${v}</span></li>`;
+                        div.innerHTML = h + '</ul>';
+                    };
+                    fill('primaire', 'print-details-primaire');
+                    fill('secondaire', 'print-details-secondaire');
+                    window.print();
+                });
+
+                // Contact
+                const btnContact = document.getElementById('contact-btn');
+                const newBtnContact = btnContact.cloneNode(true);
+                btnContact.parentNode.replaceChild(newBtnContact, btnContact);
+                newBtnContact.addEventListener('click', () => {
+                    const ecole = document.getElementById('school-name').value;
+                    const profit = document.getElementById('global-profit').innerText;
+                    const cost = document.getElementById('global-cost').innerText;
+
+                    const subject = `Proposition de Partenariat & Bilan Financier - ${ecole}`;
+                    const body = `Objet : Proposition de partenariat éducatif et financier - ${ecole}
+
+Madame, Monsieur,
+
+Faisant suite à l'utilisation de votre simulateur, la direction de l'établissement ${ecole} souhaite vous faire part de son vif intérêt pour les solutions proposées par KOLILINK.
+
+Nous avons procédé à une estimation détaillée de nos besoins pour la rentrée scolaire. Il ressort de cette analyse que votre offre de kits scolaires permettrait non seulement de simplifier la gestion des fournitures pour les familles, mais également de dégager des ressources significatives pour notre établissement.
+
+Voici les chiffres clés de notre projection :
+- Investissement global estimé : ${cost}
+- Bénéfice net prévisionnel pour l'école : ${profit}
+
+Au-delà de l'aspect financier, nous sommes convaincus que la qualité de vos services et la praticité de vos kits constitueront une réelle valeur ajoutée pour nos parents d'élèves.
+
+Nous sommes donc disposés à concrétiser cette collaboration dans les meilleurs délais. Pourriez-vous nous contacter afin de définir les modalités opérationnelles de ce partenariat ?
+
+Dans l'attente de votre retour, nous vous prions d'agréer, Madame, Monsieur, l'expression de nos salutations distinguées.
+
+La Direction de ${ecole}`;
+
+                    // --- MODIFICATION INTELLIGENTE EMAIL ---
+                    // Détection simple mobile vs desktop
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                    if (isMobile) {
+                        // Sur mobile, on utilise l'application de mail par défaut (mailto)
+                        window.location.href = `mailto:Kolilinkcommercial@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    } else {
+                        // Sur PC, on force l'ouverture de Gmail dans le navigateur (puisque mailto ne marche pas chez vous)
+                        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=Kolilinkcommercial@gmail.com&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                        window.open(gmailUrl, '_blank');
+                    }
+                });
+            });
+        })();
+    </script>
+</body>
+
+</html>
